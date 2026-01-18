@@ -11061,4 +11061,985 @@ function KnoxHub:GetThemes()
 	}
 end
 
+
+--// ═══════════════════════════════════════════════════════════════
+--// NOTIFICATION SYSTEM
+--// ═══════════════════════════════════════════════════════════════
+
+function KnoxHub:Notify(Config)
+	local Title = Config.Title or "Notification"
+	local Content = Config.Content or ""
+	local Duration = Config.Duration or 3
+	local Icon = Config.Icon or "info"
+	
+	-- Check if container exists
+	local CoreGui = game:GetService("CoreGui")
+	local NotifyGui = CoreGui:FindFirstChild("KnoxHubNotifications")
+	
+	if not NotifyGui then
+		NotifyGui = Instance.new("ScreenGui")
+		NotifyGui.Name = "KnoxHubNotifications"
+		NotifyGui.Parent = CoreGui
+		NotifyGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+		KnoxHub:_SetNilP(NotifyGui, CoreGui)
+	end
+	
+	-- Create Container List if not exists
+	local Container = NotifyGui:FindFirstChild("Container")
+	if not Container then
+		Container = Instance.new("Frame")
+		Container.Name = "Container"
+		Container.Parent = NotifyGui
+		Container.AnchorPoint = Vector2.new(1, 1)
+		Container.Position = UDim2.new(1, -20, 1, -20)
+		Container.Size = UDim2.new(0, 300, 1, 0)
+		Container.BackgroundTransparency = 1
+		
+		local UIListLayout = Instance.new("UIListLayout")
+		UIListLayout.Parent = Container
+		UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+		UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+		UIListLayout.VerticalAlignment = Enum.VerticalAlignment.Bottom
+		UIListLayout.Padding = UDim.new(0, 5)
+	end
+	
+	-- Create Notification Frame
+	local NotifyFrame = Instance.new("Frame")
+	NotifyFrame.Name = "NotifyFrame"
+	NotifyFrame.Parent = Container
+	NotifyFrame.BackgroundColor3 = KnoxHub.Colors.BlockColor
+	NotifyFrame.BorderSizePixel = 0
+	NotifyFrame.Size = UDim2.new(1, 0, 0, 0) -- Start small for animation
+	NotifyFrame.ClipsDescendants = true
+	
+	local UICorner = Instance.new("UICorner")
+	UICorner.CornerRadius = UDim.new(0, 6)
+	UICorner.Parent = NotifyFrame
+	
+	local UIStroke = Instance.new("UIStroke")
+	UIStroke.Color = KnoxHub.Colors.StrokeColor
+	UIStroke.Thickness = 1
+	UIStroke.Parent = NotifyFrame
+	
+	-- Content
+	local TitleLabel = Instance.new("TextLabel")
+	TitleLabel.Name = "Title"
+	TitleLabel.Parent = NotifyFrame
+	TitleLabel.BackgroundTransparency = 1
+	TitleLabel.Position = UDim2.new(0, 40, 0, 8)
+	TitleLabel.Size = UDim2.new(1, -50, 0, 20)
+	TitleLabel.Font = Enum.Font.GothamBold
+	TitleLabel.Text = Title
+	TitleLabel.TextColor3 = KnoxHub.Colors.SwitchColor
+	TitleLabel.TextSize = 14
+	TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+	
+	local ContentLabel = Instance.new("TextLabel")
+	ContentLabel.Name = "Content"
+	ContentLabel.Parent = NotifyFrame
+	ContentLabel.BackgroundTransparency = 1
+	ContentLabel.Position = UDim2.new(0, 40, 0, 28)
+	ContentLabel.Size = UDim2.new(1, -50, 0, 30)
+	ContentLabel.Font = Enum.Font.Gotham
+	ContentLabel.Text = Content
+	ContentLabel.TextColor3 = KnoxHub.Colors.TextMuted
+	ContentLabel.TextSize = 13
+	ContentLabel.TextWrapped = true
+	ContentLabel.TextXAlignment = Enum.TextXAlignment.Left
+	ContentLabel.TextYAlignment = Enum.TextYAlignment.Top
+	
+	local IconImage = Instance.new("ImageLabel")
+	IconImage.Name = "Icon"
+	IconImage.Parent = NotifyFrame
+	IconImage.BackgroundTransparency = 1
+	IconImage.Position = UDim2.new(0, 10, 0, 10)
+	IconImage.Size = UDim2.new(0, 24, 0, 24)
+	IconImage.Image = KnoxHub:_GetIcon(Icon)
+	IconImage.ImageColor3 = KnoxHub.Colors.Highlight
+	
+	local Progress = Instance.new("Frame")
+	Progress.Name = "Progress"
+	Progress.Parent = NotifyFrame
+	Progress.BackgroundColor3 = KnoxHub.Colors.Highlight
+	Progress.BorderSizePixel = 0
+	Progress.Position = UDim2.new(0, 0, 1, -2)
+	Progress.Size = UDim2.new(1, 0, 0, 2)
+	
+	-- Animation
+	KnoxHub:_Animation(NotifyFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(1, 0, 0, 70)})
+	KnoxHub:_Animation(Progress, TweenInfo.new(Duration, Enum.EasingStyle.Linear), {Size = UDim2.new(0, 0, 0, 2)})
+	
+	-- Close logic
+	task.delay(Duration, function()
+		if NotifyFrame then
+			KnoxHub:_Animation(NotifyFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {Size = UDim2.new(1, 0, 0, 0)})
+			task.wait(0.3)
+			NotifyFrame:Destroy()
+		end
+	end)
+end
+
+
+--// ═══════════════════════════════════════════════════════════════
+--// WINDOW CREATION
+--// ═══════════════════════════════════════════════════════════════
+
+function KnoxHub:CreateWindow(Config)
+	local WindowName = Config.Name or "Knox Hub"
+	local WindowKeybind = Config.Keybind or Enum.KeyCode.RightShift
+	local WindowLogo = Config.Logo or KnoxHub.Logo
+	
+	local ScreenGui = Instance.new("ScreenGui")
+	ScreenGui.Name = "KnoxHub"
+	ScreenGui.Parent = game:GetService("CoreGui")
+	ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+	KnoxHub:_SetNilP(ScreenGui, game:GetService("CoreGui"))
+	
+	local MainFrame = Instance.new("Frame")
+	MainFrame.Name = "MainFrame"
+	MainFrame.Parent = ScreenGui
+	MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+	MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+	MainFrame.Size = UDim2.new(0, 0, 0, 0) -- Start small for animation
+	MainFrame.BackgroundColor3 = KnoxHub.Colors.BlockBackground
+	MainFrame.BorderSizePixel = 0
+	MainFrame.ClipsDescendants = true
+	
+	local UICorner = Instance.new("UICorner")
+	UICorner.CornerRadius = UDim.new(0, 10)
+	UICorner.Parent = MainFrame
+	
+	local UIStroke = Instance.new("UIStroke")
+	UIStroke.Color = KnoxHub.Colors.StrokeColor
+	UIStroke.Thickness = 1
+	UIStroke.Parent = MainFrame
+	
+	-- Topbar
+	local Topbar = Instance.new("Frame")
+	Topbar.Name = "Topbar"
+	Topbar.Parent = MainFrame
+	Topbar.BackgroundColor3 = KnoxHub.Colors.BlockColor
+	Topbar.Size = UDim2.new(1, 0, 0, 40)
+	Topbar.BorderSizePixel = 0
+	
+	local TopbarCorner = Instance.new("UICorner")
+	TopbarCorner.CornerRadius = UDim.new(0, 10)
+	TopbarCorner.Parent = Topbar
+	
+	local TopbarFix = Instance.new("Frame")
+	TopbarFix.Parent = Topbar
+	TopbarFix.BackgroundColor3 = KnoxHub.Colors.BlockColor
+	TopbarFix.BorderSizePixel = 0
+	TopbarFix.Position = UDim2.new(0, 0, 1, -5)
+	TopbarFix.Size = UDim2.new(1, 0, 0, 5)
+	
+	local Title = Instance.new("TextLabel")
+	Title.Parent = Topbar
+	Title.BackgroundTransparency = 1
+	Title.Position = UDim2.new(0, 40, 0, 0)
+	Title.Size = UDim2.new(1, -50, 1, 0)
+	Title.Font = Enum.Font.GothamBold
+	Title.Text = WindowName
+	Title.TextColor3 = KnoxHub.Colors.SwitchColor
+	Title.TextSize = 14
+	Title.TextXAlignment = Enum.TextXAlignment.Left
+	
+	local Logo = Instance.new("ImageLabel")
+	Logo.Parent = Topbar
+	Logo.BackgroundTransparency = 1
+	Logo.Position = UDim2.new(0, 10, 0.5, -10)
+	Logo.Size = UDim2.new(0, 20, 0, 20)
+	Logo.Image = WindowLogo
+	
+	-- Tab Container (Sidebar)
+	local TabContainer = Instance.new("ScrollingFrame")
+	TabContainer.Name = "TabContainer"
+	TabContainer.Parent = MainFrame
+	TabContainer.BackgroundTransparency = 1
+	TabContainer.Position = UDim2.new(0, 10, 0, 50)
+	TabContainer.Size = UDim2.new(0, 140, 1, -60)
+	TabContainer.ScrollBarThickness = 2
+	
+	local TabList = Instance.new("UIListLayout")
+	TabList.Parent = TabContainer
+	TabList.SortOrder = Enum.SortOrder.LayoutOrder
+	TabList.Padding = UDim.new(0, 5)
+	
+	-- Pages Container
+	local Pages = Instance.new("Frame")
+	Pages.Name = "Pages"
+	Pages.Parent = MainFrame
+	Pages.BackgroundTransparency = 1
+	Pages.Position = UDim2.new(0, 160, 0, 50)
+	Pages.Size = UDim2.new(1, -170, 1, -60)
+	
+	-- Draggable
+	local Dragging, DragInput, DragStart, StartPos
+	local function Update(input)
+		local delta = input.Position - DragStart
+		MainFrame.Position = UDim2.new(StartPos.X.Scale, StartPos.X.Offset + delta.X, StartPos.Y.Scale, StartPos.Y.Offset + delta.Y)
+	end
+	Topbar.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			Dragging = true
+			DragStart = input.Position
+			StartPos = MainFrame.Position
+			input.Changed:Connect(function()
+				if input.UserInputState == Enum.UserInputState.End then
+					Dragging = false
+				end
+			end)
+		end
+	end)
+	Topbar.InputChanged:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseMovement then
+			DragInput = input
+		end
+	end)
+	game:GetService("UserInputService").InputChanged:Connect(function(input)
+		if input == DragInput and Dragging then
+			Update(input)
+		end
+	end)
+	
+	-- Toggle Keybind
+	game:GetService("UserInputService").InputBegan:Connect(function(input, gp)
+		if not gp and input.KeyCode == WindowKeybind then
+			MainFrame.Visible = not MainFrame.Visible
+		end
+	end)
+	
+	-- Open Animation
+	MainFrame.Size = UDim2.new(0, 0, 0, 0)
+	MainFrame.Visible = true
+	KnoxHub:_Animation(MainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 550, 0, 400)})
+	
+	local WindowTable = {}
+	local FirstTab = true
+	
+	function WindowTable:AddTab(Config)
+		local TabName = Config.Name or "Tab"
+		local TabIcon = Config.Icon or "box"
+		
+		local TabButton = Instance.new("TextButton")
+		TabButton.Name = TabName
+		TabButton.Parent = TabContainer
+		TabButton.BackgroundColor3 = KnoxHub.Colors.BlockColor
+		TabButton.Position = UDim2.new(0, 0, 0, 0)
+		TabButton.Size = UDim2.new(1, -5, 0, 32)
+		TabButton.AutoButtonColor = false
+		TabButton.Font = Enum.Font.Gotham
+		TabButton.Text = "  " .. TabName
+		TabButton.TextColor3 = KnoxHub.Colors.TextMuted
+		TabButton.TextSize = 13
+		TabButton.TextXAlignment = Enum.TextXAlignment.Left
+		
+		local TabBtnCorner = Instance.new("UICorner")
+		TabBtnCorner.CornerRadius = UDim.new(0, 6)
+		TabBtnCorner.Parent = TabButton
+		
+		local TabBtnIcon = Instance.new("ImageLabel")
+		TabBtnIcon.Parent = TabButton
+		TabBtnIcon.BackgroundTransparency = 1
+		TabBtnIcon.Position = UDim2.new(1, -28, 0.5, -9)
+		TabBtnIcon.Size = UDim2.new(0, 18, 0, 18)
+		TabBtnIcon.Image = KnoxHub:_GetIcon(TabIcon)
+		TabBtnIcon.ImageColor3 = KnoxHub.Colors.TextMuted
+		
+		local Page = Instance.new("ScrollingFrame")
+		Page.Name = TabName
+		Page.Parent = Pages
+		Page.BackgroundTransparency = 1
+		Page.Size = UDim2.new(1, 0, 1, 0)
+		Page.ScrollBarThickness = 2
+		Page.Visible = false
+		
+		local PageLayout = Instance.new("UIListLayout")
+		PageLayout.Parent = Page
+		PageLayout.SortOrder = Enum.SortOrder.LayoutOrder
+		PageLayout.Padding = UDim.new(0, 8)
+		
+		local PagePadding = Instance.new("UIPadding")
+		PagePadding.Parent = Page
+		PagePadding.PaddingTop = UDim.new(0, 5)
+		PagePadding.PaddingLeft = UDim.new(0, 5)
+		PagePadding.PaddingRight = UDim.new(0, 5)
+		
+		-- Tab Selection Logic
+		TabButton.MouseButton1Click:Connect(function()
+			for _, t in pairs(TabContainer:GetChildren()) do
+				if t:IsA("TextButton") then
+					KnoxHub:_Animation(t, TweenInfo.new(0.2), {BackgroundColor3 = KnoxHub.Colors.BlockColor, TextColor3 = KnoxHub.Colors.TextMuted})
+					KnoxHub:_Animation(t.ImageLabel, TweenInfo.new(0.2), {ImageColor3 = KnoxHub.Colors.TextMuted})
+				end
+			end
+			for _, p in pairs(Pages:GetChildren()) do
+				if p:IsA("ScrollingFrame") then
+					p.Visible = false
+				end
+			end
+			
+			KnoxHub:_Animation(TabButton, TweenInfo.new(0.2), {BackgroundColor3 = KnoxHub.Colors.Highlight, TextColor3 = KnoxHub.Colors.BlockBackground})
+			KnoxHub:_Animation(TabBtnIcon, TweenInfo.new(0.2), {ImageColor3 = KnoxHub.Colors.BlockBackground})
+			Page.Visible = true
+		end)
+		
+		if FirstTab then
+			FirstTab = false
+			KnoxHub:_Animation(TabButton, TweenInfo.new(0.2), {BackgroundColor3 = KnoxHub.Colors.Highlight, TextColor3 = KnoxHub.Colors.BlockBackground})
+			KnoxHub:_Animation(TabBtnIcon, TweenInfo.new(0.2), {ImageColor3 = KnoxHub.Colors.BlockBackground})
+			Page.Visible = true
+		end
+
+		local TabTable = {}
+		
+		function TabTable:AddSection(Config)
+			local SectionName = Config.Name or "Section"
+			
+			local SectionFrame = Instance.new("Frame")
+			SectionFrame.Name = SectionName
+			SectionFrame.Parent = Page
+			SectionFrame.BackgroundColor3 = KnoxHub.Colors.BlockColor
+			SectionFrame.BackgroundTransparency = 0.5
+			SectionFrame.Size = UDim2.new(1, 0, 0, 30) -- Height scales with content
+			SectionFrame.BorderSizePixel = 0
+			
+			local SectionCorner = Instance.new("UICorner")
+			SectionCorner.CornerRadius = UDim.new(0, 8)
+			SectionCorner.Parent = SectionFrame
+			
+			local SectionTitle = Instance.new("TextLabel")
+			SectionTitle.Parent = SectionFrame
+			SectionTitle.BackgroundTransparency = 1
+			SectionTitle.Position = UDim2.new(0, 10, 0, 5)
+			SectionTitle.Size = UDim2.new(1, -20, 0, 20)
+			SectionTitle.Font = Enum.Font.GothamBold
+			SectionTitle.Text = SectionName
+			SectionTitle.TextColor3 = KnoxHub.Colors.TextMuted
+			SectionTitle.TextSize = 12
+			SectionTitle.TextXAlignment = Enum.TextXAlignment.Left
+			
+			local Container = Instance.new("Frame")
+			Container.Parent = SectionFrame
+			Container.BackgroundTransparency = 1
+			Container.Position = UDim2.new(0, 10, 0, 30)
+			Container.Size = UDim2.new(1, -20, 0, 0)
+			
+			local ContainerLayout = Instance.new("UIListLayout")
+			ContainerLayout.Parent = Container
+			ContainerLayout.SortOrder = Enum.SortOrder.LayoutOrder
+			ContainerLayout.Padding = UDim.new(0, 5)
+			
+			ContainerLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+				Container.Size = UDim2.new(1, -20, 0, ContainerLayout.AbsoluteContentSize.Y)
+				SectionFrame.Size = UDim2.new(1, 0, 0, ContainerLayout.AbsoluteContentSize.Y + 40)
+			end)
+			
+
+
+			local SectionTable = {}
+
+			function SectionTable:AddButton(Config)
+
+				local ButtonName = Config.Name or "Button"
+				local Callback = Config.Callback or function() end
+				
+				local ButtonFrame = Instance.new("Frame")
+				ButtonFrame.Name = ButtonName
+				ButtonFrame.Parent = Container
+				ButtonFrame.BackgroundColor3 = KnoxHub.Colors.DropColor
+				ButtonFrame.Size = UDim2.new(1, 0, 0, 32)
+				ButtonFrame.BorderSizePixel = 0
+				
+				local BtnCorner = Instance.new("UICorner")
+				BtnCorner.CornerRadius = UDim.new(0, 6)
+				BtnCorner.Parent = ButtonFrame
+				
+				local Btn = Instance.new("TextButton")
+				Btn.Parent = ButtonFrame
+				Btn.BackgroundTransparency = 1
+				Btn.Size = UDim2.new(1, 0, 1, 0)
+				Btn.Font = Enum.Font.Gotham
+				Btn.Text = ButtonName
+				Btn.TextColor3 = KnoxHub.Colors.SwitchColor
+				Btn.TextSize = 13
+				
+				Btn.MouseButton1Click:Connect(function()
+					KnoxHub:_Animation(ButtonFrame, TweenInfo.new(0.1), {BackgroundColor3 = KnoxHub.Colors.Highlight})
+					task.wait(0.1)
+					KnoxHub:_Animation(ButtonFrame, TweenInfo.new(0.1), {BackgroundColor3 = KnoxHub.Colors.DropColor})
+					Callback()
+				end)
+				
+				local Chain = {}
+				setmetatable(Chain, {__index = SectionTable})
+				return Chain
+			end
+
+			function SectionTable:AddToggle(Config)
+				local ToggleName = Config.Name or "Toggle"
+				local Default = Config.Default or false
+				local Callback = Config.Callback or function() end
+				local Flag = Config.Flag
+				local Risky = Config.Risky
+				
+				local ToggleFrame = Instance.new("Frame")
+				ToggleFrame.Name = ToggleName
+				ToggleFrame.Parent = Container
+				ToggleFrame.BackgroundColor3 = KnoxHub.Colors.DropColor
+				ToggleFrame.Size = UDim2.new(1, 0, 0, 32)
+				ToggleFrame.BorderSizePixel = 0
+				
+				local Corner = Instance.new("UICorner")
+				Corner.CornerRadius = UDim.new(0, 6)
+				Corner.Parent = ToggleFrame
+				
+				if Risky then
+					local Stroke = Instance.new("UIStroke")
+					Stroke.Parent = ToggleFrame
+					Stroke.Color = KnoxHub.Colors.Risky
+					Stroke.Thickness = 1
+				end
+				
+				local Title = Instance.new("TextLabel")
+				Title.Parent = ToggleFrame
+				Title.BackgroundTransparency = 1
+				Title.Position = UDim2.new(0, 10, 0, 0)
+				Title.Size = UDim2.new(1, -60, 1, 0)
+				Title.Font = Enum.Font.Gotham
+				Title.Text = ToggleName
+				Title.TextColor3 = Risky and KnoxHub.Colors.Risky or KnoxHub.Colors.SwitchColor
+				Title.TextSize = 13
+				Title.TextXAlignment = Enum.TextXAlignment.Left
+				
+				local Checkbox = Instance.new("Frame")
+				Checkbox.Parent = ToggleFrame
+				Checkbox.BackgroundColor3 = KnoxHub.Colors.BlockBackground
+				Checkbox.Position = UDim2.new(1, -26, 0.5, -8)
+				Checkbox.Size = UDim2.new(0, 16, 0, 16)
+				
+				local CCorner = Instance.new("UICorner")
+				CCorner.CornerRadius = UDim.new(0, 4)
+				CCorner.Parent = Checkbox
+				
+				local Check = Instance.new("Frame")
+				Check.Parent = Checkbox
+				Check.BackgroundColor3 = KnoxHub.Colors.Highlight
+				Check.Size = UDim2.new(1, 0, 1, 0)
+				Check.BackgroundTransparency = Default and 0 or 1
+				
+				local CCorner2 = Instance.new("UICorner")
+				CCorner2.CornerRadius = UDim.new(0, 4)
+				CCorner2.Parent = Check
+				
+				local Button = Instance.new("TextButton")
+				Button.Parent = ToggleFrame
+				Button.BackgroundTransparency = 1
+				Button.Size = UDim2.new(1, 0, 1, 0)
+				Button.Text = ""
+				
+				local Toggled = Default
+				if Flag then KnoxHub.Flags[Flag] = Toggled end
+				
+				Button.MouseButton1Click:Connect(function()
+					Toggled = not Toggled
+					KnoxHub:_Animation(Check, TweenInfo.new(0.2), {BackgroundTransparency = Toggled and 0 or 1})
+					if Flag then KnoxHub.Flags[Flag] = Toggled end
+					Callback(Toggled)
+				end)
+				
+				local ToggleObj = {}
+				setmetatable(ToggleObj, {__index = SectionTable})
+				
+				function ToggleObj:AddKeybind(Config)
+					local DefaultKey = Config.Default
+					local KeyCallback = Config.Callback or function() end
+					
+					-- Mini Keybind display
+					local BindLabel = Instance.new("TextLabel")
+					BindLabel.Parent = ToggleFrame
+					BindLabel.BackgroundTransparency = 1
+					BindLabel.Position = UDim2.new(1, -60, 0.5, -8)
+					BindLabel.Size = UDim2.new(0, 30, 0, 16)
+					BindLabel.Font = Enum.Font.Gotham
+					BindLabel.Text = "[" .. (tostring(DefaultKey):gsub("Enum.KeyCode.","")) .. "]"
+					BindLabel.TextColor3 = KnoxHub.Colors.TextMuted
+					BindLabel.TextSize = 11
+					BindLabel.TextXAlignment = Enum.TextXAlignment.Right
+					
+					local PendingBind = false
+					
+					game:GetService("UserInputService").InputBegan:Connect(function(input, gp)
+						if not gp then
+							if PendingBind then
+								if input.UserInputType == Enum.UserInputType.Keyboard then
+									DefaultKey = input.KeyCode
+									BindLabel.Text = "[" .. (tostring(DefaultKey):gsub("Enum.KeyCode.","")) .. "]"
+									PendingBind = false
+									BindLabel.TextColor3 = KnoxHub.Colors.TextMuted
+									KeyCallback(DefaultKey)
+								end
+							elseif input.KeyCode == DefaultKey then
+								-- Toggle the toggle
+								Toggled = not Toggled
+								KnoxHub:_Animation(Check, TweenInfo.new(0.2), {BackgroundTransparency = Toggled and 0 or 1})
+								if Flag then KnoxHub.Flags[Flag] = Toggled end
+								Callback(Toggled)
+							end
+						end
+					end)
+					
+					-- Allow rebinding by clicking label? (simplified)
+					local BindBtn = Instance.new("TextButton")
+					BindBtn.Parent = ToggleFrame
+					BindBtn.BackgroundTransparency = 1
+					BindBtn.Position = UDim2.new(1, -60, 0, 0)
+					BindBtn.Size = UDim2.new(0, 30, 1, 0)
+					BindBtn.Text = ""
+					BindBtn.MouseButton1Click:Connect(function()
+						PendingBind = true
+						BindLabel.Text = "[...]"
+						BindLabel.TextColor3 = KnoxHub.Colors.Highlight
+					end)
+					
+					return ToggleObj
+				end
+				
+				function ToggleObj:AddColorPicker(Config)
+					-- Mini ColorPicker implementation
+					return ToggleObj
+				end
+				
+				return ToggleObj
+			end
+
+			function SectionTable:AddSlider(Config)
+				local SliderName = Config.Name or "Slider"
+				local Min = Config.Min or 0
+				local Max = Config.Max or 100
+				local Default = Config.Default or Min
+				local Callback = Config.Callback or function() end
+				local Flag = Config.Flag
+				
+				local SliderFrame = Instance.new("Frame")
+				SliderFrame.Name = SliderName
+				SliderFrame.Parent = Container
+				SliderFrame.BackgroundColor3 = KnoxHub.Colors.DropColor
+				SliderFrame.Size = UDim2.new(1, 0, 0, 45)
+				SliderFrame.BorderSizePixel = 0
+				
+				local Corner = Instance.new("UICorner")
+				Corner.CornerRadius = UDim.new(0, 6)
+				Corner.Parent = SliderFrame
+				
+				local Title = Instance.new("TextLabel")
+				Title.Parent = SliderFrame
+				Title.BackgroundTransparency = 1
+				Title.Position = UDim2.new(0, 10, 0, 5)
+				Title.Size = UDim2.new(1, -20, 0, 20)
+				Title.Font = Enum.Font.Gotham
+				Title.Text = SliderName
+				Title.TextColor3 = KnoxHub.Colors.SwitchColor
+				Title.TextSize = 13
+				Title.TextXAlignment = Enum.TextXAlignment.Left
+				
+				local ValueLabel = Instance.new("TextLabel")
+				ValueLabel.Parent = SliderFrame
+				ValueLabel.BackgroundTransparency = 1
+				ValueLabel.Position = UDim2.new(0, 10, 0, 5)
+				ValueLabel.Size = UDim2.new(1, -20, 0, 20)
+				ValueLabel.Font = Enum.Font.Gotham
+				ValueLabel.Text = tostring(Default)
+				ValueLabel.TextColor3 = KnoxHub.Colors.TextMuted
+				ValueLabel.TextSize = 13
+				ValueLabel.TextXAlignment = Enum.TextXAlignment.Right
+				
+				local SliderBar = Instance.new("Frame")
+				SliderBar.Parent = SliderFrame
+				SliderBar.BackgroundColor3 = KnoxHub.Colors.BlockBackground
+				SliderBar.Position = UDim2.new(0, 10, 0, 30)
+				SliderBar.Size = UDim2.new(1, -20, 0, 6)
+				
+				local BarCorner = Instance.new("UICorner")
+				BarCorner.CornerRadius = UDim.new(1, 0)
+				BarCorner.Parent = SliderBar
+				
+				local Fill = Instance.new("Frame")
+				Fill.Parent = SliderBar
+				Fill.BackgroundColor3 = KnoxHub.Colors.Highlight
+				Fill.Size = UDim2.new((Default - Min) / (Max - Min), 0, 1, 0)
+				
+				local FillCorner = Instance.new("UICorner")
+				FillCorner.CornerRadius = UDim.new(1, 0)
+				FillCorner.Parent = Fill
+				
+				local Trigger = Instance.new("TextButton")
+				Trigger.Parent = SliderFrame
+				Trigger.BackgroundTransparency = 1
+				Trigger.Size = UDim2.new(1, 0, 1, 0)
+				Trigger.Text = ""
+				
+				local function Set(value)
+					local percent = (value - Min) / (Max - Min)
+					KnoxHub:_Animation(Fill, TweenInfo.new(0.1), {Size = UDim2.new(percent, 0, 1, 0)})
+					ValueLabel.Text = tostring(math.floor(value))
+					if Flag then KnoxHub.Flags[Flag] = value end
+					Callback(value)
+				end
+				
+				local dragging = false
+				Trigger.MouseButton1Down:Connect(function()
+					dragging = true
+					while dragging do
+						local mouseLocation = game:GetService("UserInputService"):GetMouseLocation()
+						local relativePos = mouseLocation.X - SliderBar.AbsolutePosition.X
+						local percentage = math.clamp(relativePos / SliderBar.AbsoluteSize.X, 0, 1)
+						local value = math.floor(Min + (Max - Min) * percentage)
+						Set(value)
+						task.wait()
+					end
+				end)
+				
+				game:GetService("UserInputService").InputEnded:Connect(function(input)
+					if input.UserInputType == Enum.UserInputType.MouseButton1 then
+						dragging = false
+					end
+				end)
+				
+				if Flag then KnoxHub.Flags[Flag] = Default end
+				
+				local Chain = {}
+				setmetatable(Chain, {__index = SectionTable})
+				return Chain
+			end
+
+			function SectionTable:AddDropdown(Config)
+				local DropdownName = Config.Name or "Dropdown"
+				local Default = Config.Default or ""
+				local Options = Config.Values or {}
+				local Callback = Config.Callback or function() end
+				local Flag = Config.Flag
+				
+				local DropdownFrame = Instance.new("Frame")
+				DropdownFrame.Name = DropdownName
+				DropdownFrame.Parent = Container
+				DropdownFrame.BackgroundColor3 = KnoxHub.Colors.DropColor
+				DropdownFrame.Size = UDim2.new(1, 0, 0, 32)
+				DropdownFrame.BorderSizePixel = 0
+				DropdownFrame.ClipsDescendants = true
+				
+				local Corner = Instance.new("UICorner")
+				Corner.CornerRadius = UDim.new(0, 6)
+				Corner.Parent = DropdownFrame
+				
+				local Title = Instance.new("TextLabel")
+				Title.Parent = DropdownFrame
+				Title.BackgroundTransparency = 1
+				Title.Position = UDim2.new(0, 10, 0, 0)
+				Title.Size = UDim2.new(1, -40, 0, 32)
+				Title.Font = Enum.Font.Gotham
+				Title.Text = DropdownName .. ": " .. tostring(Default)
+				Title.TextColor3 = KnoxHub.Colors.SwitchColor
+				Title.TextSize = 13
+				Title.TextXAlignment = Enum.TextXAlignment.Left
+				
+				local Arrow = Instance.new("ImageLabel")
+				Arrow.Parent = DropdownFrame
+				Arrow.BackgroundTransparency = 1
+				Arrow.Position = UDim2.new(1, -26, 0.5, -8)
+				Arrow.Size = UDim2.new(0, 16, 0, 16)
+				Arrow.Image = KnoxHub:_GetIcon("chevron-down")
+				Arrow.ImageColor3 = KnoxHub.Colors.TextMuted
+				
+				local Trigger = Instance.new("TextButton")
+				Trigger.Parent = DropdownFrame
+				Trigger.BackgroundTransparency = 1
+				Trigger.Size = UDim2.new(1, 0, 1, 0)
+				Trigger.Text = ""
+				
+				local OptionContainer = Instance.new("Frame")
+				OptionContainer.Parent = DropdownFrame
+				OptionContainer.BackgroundColor3 = KnoxHub.Colors.BlockBackground
+				OptionContainer.BackgroundTransparency = 0.5
+				OptionContainer.Position = UDim2.new(0, 5, 0, 35)
+				OptionContainer.Size = UDim2.new(1, -10, 0, 0)
+				OptionContainer.Visible = false
+				
+				local OptionList = Instance.new("UIListLayout")
+				OptionList.Parent = OptionContainer
+				OptionList.SortOrder = Enum.SortOrder.LayoutOrder
+				OptionList.Padding = UDim.new(0, 2)
+				
+				local Opened = false
+				
+				local function RefreshOptions()
+					for _, v in pairs(OptionContainer:GetChildren()) do
+						if v:IsA("TextButton") then v:Destroy() end
+					end
+					
+					for _, val in pairs(Options) do
+						local OptBtn = Instance.new("TextButton")
+						OptBtn.Parent = OptionContainer
+						OptBtn.BackgroundColor3 = KnoxHub.Colors.DropColor
+						OptBtn.Size = UDim2.new(1, 0, 0, 25)
+						OptBtn.Font = Enum.Font.Gotham
+						OptBtn.Text = tostring(val)
+						OptBtn.TextColor3 = KnoxHub.Colors.TextMuted
+						OptBtn.TextSize = 13
+						OptBtn.AutoButtonColor = false
+						
+						local OptCorner = Instance.new("UICorner")
+						OptCorner.CornerRadius = UDim.new(0, 4)
+						OptCorner.Parent = OptBtn
+						
+						OptBtn.MouseButton1Click:Connect(function()
+							Default = val
+							Title.Text = DropdownName .. ": " .. tostring(val)
+							Opened = false
+							DropdownFrame.Size = UDim2.new(1, 0, 0, 32)
+							OptionContainer.Visible = false
+							KnoxHub:_Animation(Arrow, TweenInfo.new(0.2), {Rotation = 0})
+							Callback(val)
+							if Flag then KnoxHub.Flags[Flag] = val end
+						end)
+					end
+					
+					OptionContainer.Size = UDim2.new(1, -10, 0, #Options * 27)
+				end
+				
+				RefreshOptions()
+				
+				Trigger.MouseButton1Click:Connect(function()
+					Opened = not Opened
+					if Opened then
+						RefreshOptions()
+						OptionContainer.Visible = true
+						DropdownFrame.Size = UDim2.new(1, 0, 0, 35 + OptionContainer.Size.Y.Offset + 5)
+						KnoxHub:_Animation(Arrow, TweenInfo.new(0.2), {Rotation = 180})
+					else
+						DropdownFrame.Size = UDim2.new(1, 0, 0, 32)
+						OptionContainer.Visible = false
+						KnoxHub:_Animation(Arrow, TweenInfo.new(0.2), {Rotation = 0})
+					end
+				end)
+				
+				if Flag then KnoxHub.Flags[Flag] = Default end
+				
+				local DropObj = {}
+				setmetatable(DropObj, {__index = SectionTable})
+				
+				function DropObj:SetValues(NewValues)
+					Options = NewValues or {}
+					if Opened then RefreshOptions() end
+				end
+				
+				return DropObj
+			end
+			
+			function SectionTable:AddColorPicker(Config)
+				local Name = Config.Name or "Color Picker"
+				local Default = Config.Default or Color3.new(1, 1, 1)
+				
+				local CPFrame = Instance.new("Frame")
+				CPFrame.Parent = Container
+				CPFrame.BackgroundColor3 = KnoxHub.Colors.DropColor
+				CPFrame.Size = UDim2.new(1, 0, 0, 32)
+				
+				local Corner = Instance.new("UICorner")
+				Corner.CornerRadius = UDim.new(0, 6)
+				Corner.Parent = CPFrame
+				
+				local Title = Instance.new("TextLabel")
+				Title.Parent = CPFrame
+				Title.BackgroundTransparency = 1
+				Title.Position = UDim2.new(0, 10, 0, 0)
+				Title.Size = UDim2.new(1, -40, 1, 0)
+				Title.Font = Enum.Font.Gotham
+				Title.Text = Name
+				Title.TextColor3 = KnoxHub.Colors.SwitchColor
+				Title.TextSize = 13
+				Title.TextXAlignment = Enum.TextXAlignment.Left
+				
+				local ColorPreview = Instance.new("Frame")
+				ColorPreview.Parent = CPFrame
+				ColorPreview.BackgroundColor3 = Default
+				ColorPreview.Position = UDim2.new(1, -30, 0.5, -10)
+				ColorPreview.Size = UDim2.new(0, 20, 0, 20)
+				
+				local PCorner = Instance.new("UICorner")
+				PCorner.CornerRadius = UDim.new(0, 4)
+				PCorner.Parent = ColorPreview
+				
+				local Chain = {}
+				setmetatable(Chain, {__index = SectionTable})
+				return Chain
+			end
+			
+			function SectionTable:AddKeybind(Config)
+				local Name = Config.Name or "Keybind"
+				local Default = Config.Default
+				local Callback = Config.Callback or function() end
+				
+				local KBFrame = Instance.new("Frame")
+				KBFrame.Parent = Container
+				KBFrame.BackgroundColor3 = KnoxHub.Colors.DropColor
+				KBFrame.Size = UDim2.new(1, 0, 0, 32)
+				
+				local Corner = Instance.new("UICorner")
+				Corner.CornerRadius = UDim.new(0, 6)
+				Corner.Parent = KBFrame
+				
+				local Title = Instance.new("TextLabel")
+				Title.Parent = KBFrame
+				Title.BackgroundTransparency = 1
+				Title.Position = UDim2.new(0, 10, 0, 0)
+				Title.Size = UDim2.new(1, -60, 1, 0)
+				Title.Font = Enum.Font.Gotham
+				Title.Text = Name
+				Title.TextColor3 = KnoxHub.Colors.SwitchColor
+				Title.TextSize = 13
+				Title.TextXAlignment = Enum.TextXAlignment.Left
+				
+				local BindLabel = Instance.new("TextLabel")
+				BindLabel.Parent = KBFrame
+				BindLabel.BackgroundTransparency = 1
+				BindLabel.Position = UDim2.new(1, -60, 0.5, -8)
+				BindLabel.Size = UDim2.new(0, 50, 0, 16)
+				BindLabel.Font = Enum.Font.Gotham
+				BindLabel.Text = "[" .. (tostring(Default):gsub("Enum.KeyCode.","")) .. "]"
+				BindLabel.TextColor3 = KnoxHub.Colors.TextMuted
+				BindLabel.TextSize = 11
+				BindLabel.TextXAlignment = Enum.TextXAlignment.Right
+				
+				local PendingBind = false
+				
+				local Btn = Instance.new("TextButton")
+				Btn.Parent = KBFrame
+				Btn.Size = UDim2.new(1,0,1,0)
+				Btn.BackgroundTransparency = 1
+				Btn.Text = ""
+				
+				Btn.MouseButton1Click:Connect(function()
+					PendingBind = true
+					BindLabel.Text = "[...]"
+					BindLabel.TextColor3 = KnoxHub.Colors.Highlight
+				end)
+				
+				game:GetService("UserInputService").InputBegan:Connect(function(input, gp)
+					if not gp and PendingBind and input.UserInputType == Enum.UserInputType.Keyboard then
+						Default = input.KeyCode
+						BindLabel.Text = "[" .. (tostring(Default):gsub("Enum.KeyCode.","")) .. "]"
+						PendingBind = false
+						BindLabel.TextColor3 = KnoxHub.Colors.TextMuted
+						Callback(Default)
+					end
+				end)
+				
+				local Chain = {}
+				setmetatable(Chain, {__index = SectionTable})
+				return Chain
+			end
+			
+			function SectionTable:AddTextBox(Config)
+				local Name = Config.Name or "TextBox"
+				local Default = Config.Default or ""
+				local Placeholder = Config.Placeholder or "..."
+				local Callback = Config.Callback or function() end
+				
+				local BoxFrame = Instance.new("Frame")
+				BoxFrame.Parent = Container
+				BoxFrame.BackgroundColor3 = KnoxHub.Colors.DropColor
+				BoxFrame.Size = UDim2.new(1, 0, 0, 45)
+				
+				local Corner = Instance.new("UICorner")
+				Corner.CornerRadius = UDim.new(0, 6)
+				Corner.Parent = BoxFrame
+				
+				local Title = Instance.new("TextLabel")
+				Title.Parent = BoxFrame
+				Title.BackgroundTransparency = 1
+				Title.Position = UDim2.new(0, 10, 0, 5)
+				Title.Size = UDim2.new(1, -20, 0, 20)
+				Title.Font = Enum.Font.Gotham
+				Title.Text = Name
+				Title.TextColor3 = KnoxHub.Colors.SwitchColor
+				Title.TextSize = 13
+				Title.TextXAlignment = Enum.TextXAlignment.Left
+				
+				local Input = Instance.new("TextBox")
+				Input.Parent = BoxFrame
+				Input.BackgroundColor3 = KnoxHub.Colors.BlockBackground
+				Input.Position = UDim2.new(0, 10, 0, 25)
+				Input.Size = UDim2.new(1, -20, 0, 16)
+				Input.Font = Enum.Font.Gotham
+				Input.PlaceholderText = Placeholder
+				Input.Text = Default
+				Input.TextColor3 = KnoxHub.Colors.TextMuted
+				Input.TextSize = 12
+				
+				local ICorner = Instance.new("UICorner")
+				ICorner.CornerRadius = UDim.new(0, 4)
+				ICorner.Parent = Input
+				
+				Input.FocusLost:Connect(function()
+					Callback(Input.Text)
+				end)
+				
+				local Chain = {}
+				setmetatable(Chain, {__index = SectionTable})
+				return Chain
+			end
+			
+			function SectionTable:AddParagraph(Config)
+				local ParaName = Config.Title or "Paragraph"
+				local Content = Config.Content or ""
+				
+				local ParaFrame = Instance.new("Frame")
+				ParaFrame.Parent = Container
+				ParaFrame.BackgroundColor3 = KnoxHub.Colors.DropColor
+				ParaFrame.Size = UDim2.new(1, 0, 0, 60)
+				
+				local Corner = Instance.new("UICorner")
+				Corner.CornerRadius = UDim.new(0, 6)
+				Corner.Parent = ParaFrame
+				
+				local Title = Instance.new("TextLabel")
+				Title.Parent = ParaFrame
+				Title.Position = UDim2.new(0, 10, 0, 5)
+				Title.Size = UDim2.new(1, -20, 0, 20)
+				Title.BackgroundTransparency = 1
+				Title.Text = ParaName
+				Title.TextColor3 = KnoxHub.Colors.SwitchColor
+				Title.Font = Enum.Font.GothamBold
+				Title.TextSize = 13
+				Title.TextXAlignment = Enum.TextXAlignment.Left
+				
+				local Desc = Instance.new("TextLabel")
+				Desc.Parent = ParaFrame
+				Desc.Position = UDim2.new(0, 10, 0, 25)
+				Desc.Size = UDim2.new(1, -20, 0, 30)
+				Desc.BackgroundTransparency = 1
+				Desc.Text = Content
+				Desc.TextColor3 = KnoxHub.Colors.TextMuted
+				Desc.Font = Enum.Font.Gotham
+				Desc.TextSize = 12
+				Desc.TextWrapped = true
+				Desc.TextXAlignment = Enum.TextXAlignment.Left
+				Desc.TextYAlignment = Enum.TextYAlignment.Top
+				
+				local Chain = {}
+				setmetatable(Chain, {__index = SectionTable})
+				return Chain
+			end
+			
+			return SectionTable
+
+        end
+        return TabTable
+    end
+    return WindowTable
+end
+
 return KnoxHub;
+
+
